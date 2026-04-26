@@ -1,0 +1,63 @@
+# Tencent Cloud EdgeOne 部署配置
+# 用于部署 CodeGuide - AI软件开发助手
+
+# 服务名称
+service: codeguide
+
+# 构建配置
+build:
+  dockerfile: Dockerfile
+  context: .
+
+# 部署配置
+deploy:
+  # 运行环境
+  runtime: docker
+  
+  # 端口映射
+  ports:
+    - port: 8501
+      protocol: http
+  
+  # 资源限制
+  resources:
+    cpu: 1
+    memory: 2Gi
+  
+  # 环境变量
+  env:
+    - name: PYTHONUNBUFFERED
+      value: "1"
+    - name: STREAMLIT_SERVER_PORT
+      value: "8501"
+    - name: STREAMLIT_SERVER_ADDRESS
+      value: "0.0.0.0"
+    - name: STREAMLIT_SERVER_HEADLESS
+      value: "true"
+  
+  # 健康检查
+  healthCheck:
+    path: /_stcore/health
+    port: 8501
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  
+  # 自动扩缩容
+  scaling:
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+
+# 域名配置
+domains:
+  - codeguide.edgeone.app
+
+# 缓存配置
+cache:
+  rules:
+    - path: /_stcore/*
+      ttl: 0
+    - path: /static/*
+      ttl: 86400
