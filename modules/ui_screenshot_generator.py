@@ -159,8 +159,8 @@ def extract_ui_framework(tech_content):
         "ui_lib": ui_libs[0] if ui_libs else "Tailwind CSS"
     }
 
-def generate_screenshot_prompt_v2(suggestion, all_docs):
-    """生成截图提示词（增强版）"""
+def generate_screenshot_prompt_v2(suggestion, all_docs, custom_details=""):
+    """生成截图提示词（增强版，支持自定义细节）"""
     ui_framework = suggestion.get('context', {}).get('ui_framework', {})
     page_info = suggestion.get('context', {}).get('page_info', {})
     
@@ -170,8 +170,8 @@ def generate_screenshot_prompt_v2(suggestion, all_docs):
     screenshot_name = suggestion['name']
     section = suggestion.get('section', '')
     
-    # 构建提示词
-    prompt = f"""请生成一张专业的软件界面截图，用于软著申请文档。
+    # 基础提示词
+    base_prompt = f"""请生成一张专业的软件界面截图，用于软著申请文档。
 
 ## 界面信息
 
@@ -219,6 +219,20 @@ def generate_screenshot_prompt_v2(suggestion, all_docs):
 - 比例：16:9
 - 清晰度高，文字可读
 - 无水印、无Mock字样
+"""
+
+    # 如果有自定义细节，添加到提示词中
+    if custom_details:
+        base_prompt += f"""
+
+## 自定义要求（重要）
+
+{custom_details}
+
+请严格按照上述自定义要求生成界面，确保画面精准符合预期。
+"""
+
+    base_prompt += f"""
 
 ## 输出要求
 
@@ -227,9 +241,10 @@ def generate_screenshot_prompt_v2(suggestion, all_docs):
 2. 数据真实可信，适合软著申请材料
 3. 视觉效果专业美观
 4. 所有文字清晰可读
+5. 高保真，接近真实软件截图效果
 """
     
-    return prompt
+    return base_prompt
 
 def test_image_api_connection():
     """测试图像生成API连接"""
@@ -264,8 +279,8 @@ def test_image_api_connection():
         full_error = traceback.format_exc()
         return False, f"连接失败: {str(e)}", full_error
 
-def generate_single_screenshot_v2(suggestion, all_docs, regenerate=False):
-    """生成单个截图（新版）"""
+def generate_single_screenshot_v2(suggestion, all_docs, custom_prompt=None, regenerate=False):
+    """生成单个截图（新版，支持自定义提示词）"""
     from config import get_image_api_config
     
     # 获取配置信息用于调试
@@ -273,9 +288,14 @@ def generate_single_screenshot_v2(suggestion, all_docs, regenerate=False):
     base_url = config.get("base_url", "未配置")
     model = config.get("model", "未配置")
     
-    prompt = generate_screenshot_prompt_v2(suggestion, all_docs)
+    # 使用自定义提示词或自动生成
+    if custom_prompt:
+        prompt = custom_prompt
+        print(f"[DEBUG] 使用自定义提示词生成截图: {suggestion['name']}")
+    else:
+        prompt = generate_screenshot_prompt_v2(suggestion, all_docs)
+        print(f"[DEBUG] 使用自动生成提示词生成截图: {suggestion['name']}")
     
-    print(f"[DEBUG] 正在生成截图: {suggestion['name']}")
     print(f"[DEBUG] API配置: base_url={base_url}, model={model}")
     print(f"[DEBUG] 提示词长度: {len(prompt)} 字符")
     
@@ -307,7 +327,7 @@ def generate_single_screenshot_v2(suggestion, all_docs, regenerate=False):
     return image_url, None
 
 def show_ui_screenshot_generator():
-    """显示UI截图生成界面（重构版）"""
+    """显示UI截图生成界面（重构版，支持提示词编辑）"""
     st.title("🔟 软著UI截图生成")
     st.markdown("---")
     
@@ -317,13 +337,18 @@ def show_ui_screenshot_generator():
     **工作流程**:
     1. 读取 03/05/06/09 文档
     2. 分析并推荐需要生成的截图列表
-    3. 批量生成高质量JPG截图
-    4. 支持不满意重新生成（抽卡）
+    3. **编辑提示词**（可选，提升画面精准度）
+    4. 批量生成高质量JPG截图
+    5. 支持不满意重新生成（抽卡）
     """)
     
     # 初始化日志存储
     if "generation_logs" not in st.session_state:
         st.session_state.generation_logs = []
+    
+    # 初始化自定义提示词存储
+    if "custom_prompts" not in st.session_state:
+        st.session_state.custom_prompts = {}
     
     # 检查API配置
     from config import get_image_api_config
@@ -441,9 +466,10 @@ def show_ui_screenshot_generator():
         data = []
         for s in suggestions:
             gen_status = "✅ 已生成" if s['id'] in st.session_state.generated_screenshots else "⬜ 待生成"
+            has_custom = "📝" if s['id'] in st.session_state.custom_prompts else ""
             data.append({
                 "序号": s['id'],
-                "截图名称": s['name'],
+                "截图名称": f"{s['name']} {has_custom}",
                 "所属章节": s['section'],
                 "优先级": s['priority'],
                 "状态": gen_status
@@ -459,12 +485,76 @@ def show_ui_screenshot_generator():
         for i, s in enumerate(suggestions):
             with cols[i % 3]:
                 is_generated = s['id'] in st.session_state.generated_screenshots
+                has_custom = s['id'] in st.session_state.custom_prompts
                 checkbox_label = f"{s['id']}: {s['name']}"
                 if is_generated:
                     checkbox_label += " ✅"
+                if has_custom:
+                    checkbox_label += " 📝"
                 
                 if st.checkbox(checkbox_label, key=f"select_{s['id']}", value=not is_generated):
                     selected_ids.append(s['id'])
+        
+        st.markdown("---")
+        
+        # 步骤2.5：提示词编辑（新增）
+        st.header("✏️ 步骤2.5：编辑提示词（可选）")
+        
+        st.info("""
+        💡 **提示词编辑说明**
+        - 默认使用系统自动生成的提示词
+        - 如果生成效果不够精准，可以在这里添加自定义细节
+        - 例如：指定具体的字段名称、数据格式、按钮文字、布局细节等
+        - 自定义内容将**追加**到默认提示词中，增强控制力
+        """)
+        
+        # 为每个选中的截图显示提示词编辑框
+        if selected_ids:
+            all_docs = {
+                "tech_stack": tech_stack,
+                "api_contract": api_contract,
+                "ui_component": ui_component,
+                "manual": manual
+            }
+            
+            for sid in selected_ids:
+                suggestion = next(s for s in suggestions if s['id'] == sid)
+                
+                with st.expander(f"📝 {sid}: {suggestion['name']} - 点击编辑提示词"):
+                    # 显示默认提示词预览
+                    default_prompt = generate_screenshot_prompt_v2(suggestion, all_docs)
+                    
+                    st.markdown("**默认提示词预览（前500字符）：**")
+                    st.text(default_prompt[:500] + "...")
+                    
+                    st.markdown("**添加自定义细节：**")
+                    custom_details = st.text_area(
+                        f"自定义要求_{sid}",
+                        value=st.session_state.custom_prompts.get(sid, ""),
+                        placeholder="例如：\n- 表格包含以下字段：订单号、客户名称、订单金额、下单时间、订单状态\n- 状态列使用标签样式：待处理(橙色)、已完成(绿色)、已取消(灰色)\n- 右上角显示搜索框和'新建订单'按钮\n- 左侧菜单高亮'订单管理'项",
+                        height=150,
+                        key=f"custom_prompt_{sid}"
+                    )
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button(f"💾 保存自定义提示词", key=f"save_prompt_{sid}"):
+                            if custom_details.strip():
+                                st.session_state.custom_prompts[sid] = custom_details
+                                st.success("✅ 自定义提示词已保存！")
+                            else:
+                                if sid in st.session_state.custom_prompts:
+                                    del st.session_state.custom_prompts[sid]
+                                st.info("已清除自定义提示词，将使用默认提示词")
+                    
+                    with col2:
+                        if st.button(f"🗑️ 清除", key=f"clear_prompt_{sid}"):
+                            if sid in st.session_state.custom_prompts:
+                                del st.session_state.custom_prompts[sid]
+                                st.success("已清除自定义提示词")
+                                st.rerun()
+        else:
+            st.warning("请先选择要生成的截图")
         
         st.markdown("---")
         
@@ -508,7 +598,16 @@ def show_ui_screenshot_generator():
                     log_entry = f"[{i+1}/{len(selected_ids)}] 开始生成: {suggestion['name']}"
                     st.session_state.generation_logs.append(log_entry)
                     
-                    image_url, error = generate_single_screenshot_v2(suggestion, all_docs)
+                    # 检查是否有自定义提示词
+                    custom_details = st.session_state.custom_prompts.get(sid, "")
+                    if custom_details:
+                        # 使用自定义提示词
+                        custom_prompt = generate_screenshot_prompt_v2(suggestion, all_docs, custom_details)
+                        log_entry += " (使用自定义提示词)"
+                    else:
+                        custom_prompt = None
+                    
+                    image_url, error = generate_single_screenshot_v2(suggestion, all_docs, custom_prompt)
                     
                     if error:
                         error_log = f"❌ {suggestion['name']} 失败"
@@ -526,7 +625,8 @@ def show_ui_screenshot_generator():
                         st.session_state.generated_screenshots[sid] = {
                             **suggestion,
                             "image_url": image_url,
-                            "timestamp": st.session_state.get("timestamp", "")
+                            "timestamp": st.session_state.get("timestamp", ""),
+                            "has_custom_prompt": sid in st.session_state.custom_prompts
                         }
                         # 清除该截图之前的错误记录
                         if "generation_errors" in st.session_state and sid in st.session_state.generation_errors:
@@ -584,7 +684,8 @@ def show_ui_screenshot_generator():
         
         for sid, data in screenshots.items():
             with st.container():
-                st.markdown(f"**{data['id']}: {data['name']}**")
+                custom_badge = " 📝" if data.get('has_custom_prompt') else ""
+                st.markdown(f"**{data['id']}: {data['name']}{custom_badge}**")
                 st.caption(f"所属章节: {data['section']}")
                 
                 col1, col2 = st.columns([3, 1])
@@ -629,6 +730,10 @@ def show_ui_screenshot_generator():
                     st.markdown("**功能描述**:")
                     st.write(data['name'])
                     
+                    if data.get('has_custom_prompt'):
+                        st.markdown("**提示词**:")
+                        st.success("使用了自定义提示词")
+                    
                     st.markdown("**插入位置**:")
                     st.code(f"[Insert Screenshot: {data['name']}]", language=None)
                     
@@ -636,6 +741,58 @@ def show_ui_screenshot_generator():
                         if sid in st.session_state.generated_screenshots:
                             del st.session_state.generated_screenshots[sid]
                         st.rerun()
+                    
+                    # 添加编辑提示词按钮
+                    if st.button("✏️ 编辑提示词", key=f"edit_prompt_{sid}"):
+                        st.session_state[f"edit_prompt_open_{sid}"] = True
+                        st.rerun()
+                    
+                    # 显示提示词编辑框（如果打开）
+                    if st.session_state.get(f"edit_prompt_open_{sid}", False):
+                        all_docs = {
+                            "tech_stack": tech_stack,
+                            "api_contract": api_contract,
+                            "ui_component": ui_component,
+                            "manual": manual
+                        }
+                        suggestion = next(s for s in suggestions if s['id'] == sid)
+                        default_prompt = generate_screenshot_prompt_v2(suggestion, all_docs)
+                        
+                        st.markdown("**当前提示词：**")
+                        st.text_area(
+                            "提示词预览",
+                            value=default_prompt[:800] + "...",
+                            height=100,
+                            disabled=True,
+                            key=f"preview_prompt_{sid}"
+                        )
+                        
+                        st.markdown("**修改自定义细节：**")
+                        current_custom = st.session_state.custom_prompts.get(sid, "")
+                        new_custom = st.text_area(
+                            "自定义要求",
+                            value=current_custom,
+                            height=100,
+                            key=f"edit_custom_{sid}"
+                        )
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("💾 保存并重新生成", key=f"save_regen_{sid}"):
+                                if new_custom.strip():
+                                    st.session_state.custom_prompts[sid] = new_custom
+                                else:
+                                    if sid in st.session_state.custom_prompts:
+                                        del st.session_state.custom_prompts[sid]
+                                # 删除当前生成的图片，触发重新生成
+                                if sid in st.session_state.generated_screenshots:
+                                    del st.session_state.generated_screenshots[sid]
+                                st.session_state[f"edit_prompt_open_{sid}"] = False
+                                st.rerun()
+                        with col2:
+                            if st.button("❌ 取消", key=f"cancel_edit_{sid}"):
+                                st.session_state[f"edit_prompt_open_{sid}"] = False
+                                st.rerun()
                 
                 st.markdown("---")
         
@@ -645,11 +802,12 @@ def show_ui_screenshot_generator():
         if st.button("📥 导出所有截图清单", use_container_width=True):
             # 生成截图清单文档
             manifest = "# 软著截图清单\n\n"
-            manifest += "| 序号 | 截图名称 | 所属章节 | 文件名 |\n"
-            manifest += "|------|----------|----------|--------|\n"
+            manifest += "| 序号 | 截图名称 | 所属章节 | 文件名 | 提示词类型 |\n"
+            manifest += "|------|----------|----------|--------|------------|\n"
             
             for sid, data in screenshots.items():
-                manifest += f"| {data['id']} | {data['name']} | {data['section']} | {data['id']}_{data['name']}.jpg |\n"
+                prompt_type = "自定义" if data.get('has_custom_prompt') else "默认"
+                manifest += f"| {data['id']} | {data['name']} | {data['section']} | {data['id']}_{data['name']}.jpg | {prompt_type} |\n"
             
             st.download_button(
                 label="📄 下载截图清单 (Markdown)",
@@ -676,15 +834,40 @@ def show_ui_screenshot_generator():
            - 分析页面路由补充关键界面
            - 按优先级排序推荐列表
         
-        3. **批量生成**
+        3. **提示词编辑（新增）**
+           - 支持为每张截图添加自定义细节
+           - 可指定具体字段、按钮、布局等
+           - 自定义内容追加到默认提示词中
+           - 实时预览默认提示词结构
+        
+        4. **批量生成**
            - 支持选择部分或全部生成
            - 生成JPG格式高清图片
            - 支持不满意重新生成（抽卡）
+           - 标记使用自定义提示词的截图
         
-        4. **导出管理**
+        5. **导出管理**
            - 单张下载为JPG
            - 批量导出截图清单
            - 文件名包含序号便于对应
+        
+        ### 提示词编写技巧
+        
+        **好的自定义细节示例：**
+        ```
+        - 表格包含字段：订单号、客户名称、订单金额、下单时间、订单状态
+        - 状态列使用标签样式：待处理(橙色)、已完成(绿色)、已取消(灰色)
+        - 右上角显示搜索框和蓝色的'新建订单'按钮
+        - 左侧菜单高亮'订单管理'项，其他项为灰色
+        - 表格第一行数据：DD20240115001 | 张三 | ¥12,345.67 | 2024-01-15 14:30 | 已完成
+        ```
+        
+        **提示词要点：**
+        - 具体指定字段名称和顺序
+        - 描述UI元素的位置（左上、右侧、底部等）
+        - 指定颜色和样式（蓝色主按钮、灰色边框等）
+        - 提供真实的数据示例
+        - 说明交互状态（高亮、选中、悬停等）
         
         ### 截图要求
         
