@@ -5,6 +5,8 @@ from io import BytesIO
 def copy_to_clipboard(text):
     """生成复制到剪贴板的HTML组件"""
     # 使用JavaScript实现复制功能
+    # 转义反引号和反斜杠，避免JavaScript注入
+    escaped_text = text.replace('\\', '\\\\').replace('`', '\\`')
     copy_js = f"""
     <script>
     function copyToClipboard_{hash(text) & 0xFFFFFFFF}(text) {{
@@ -15,7 +17,7 @@ def copy_to_clipboard(text):
         }});
     }}
     </script>
-    <button onclick="copyToClipboard_{hash(text) & 0xFFFFFFFF}(`{text.replace('`', '\\`')}`)" 
+    <button onclick="copyToClipboard_{hash(text) & 0xFFFFFFFF}(`{escaped_text}`)" 
             style="background-color: #4CAF50; color: white; border: none; padding: 8px 16px; 
                    border-radius: 4px; cursor: pointer; margin: 5px 0;">
         📋 复制内容

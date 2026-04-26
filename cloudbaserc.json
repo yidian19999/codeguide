@@ -1,0 +1,21 @@
+{
+  "envId": "softwarecopyright-d3d0gwa10cebd9",
+  "framework": {
+    "name": "codeguide",
+    "plugins": {
+      "container": {
+        "use": "@cloudbase/framework-plugin-container",
+        "inputs": {
+          "serviceName": "codeguide",
+          "servicePath": "/",
+          "containerPort": 8501,
+          "dockerfilePath": "./Dockerfile",
+          "minNum": 1,
+          "maxNum": 2,
+          "cpu": 0.25,
+          "mem": 0.5
+        }
+      }
+    }
+  }
+}
