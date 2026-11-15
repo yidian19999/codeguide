@@ -5,14 +5,14 @@ from llm_client import LLMClient
 from utils import display_result
 
 def generate_manual_prompt(requirement_spec, ui_component, tech_stack, software_name, version):
-    """生成软著用户手册提示词"""
-    return f"""你是一名资深的技术文档工程师，擅长编写符合软件著作权申请标准的用户手册。
+    """生成软件用户手册提示词"""
+    return f"""你是一名资深的技术文档工程师，擅长编写符合软件申请标准的用户手册。
 
-请基于以下输入文档，生成一份详细、专业、内容充实的软件著作权申请《用户手册》(Software_Copyright_Manual.md)。
+请基于以下输入文档，生成一份详细、专业、内容充实的软件申请《用户手册》(Software_Copyright_Manual.md)。
 
 ## 任务要求
 
-**核心目标**: 生成一份可用于软著申请的高质量用户手册，内容必须详细充实，不能简略。
+**核心目标**: 生成一份可用于软件申请的高质量用户手册，内容必须详细充实，不能简略。
 
 **内容要求**:
 1. 每个章节必须有实质性内容，禁止出现"[待补充]"、"[示例]"等占位符
@@ -794,12 +794,12 @@ java -jar application.jar --spring.profiles.active=prod
 """
 
 def show_software_copyright_manual():
-    """显示软著用户手册界面"""
-    st.title("📖 09. 软著用户手册 (Software_Copyright_Manual.md)")
+    """显示软件用户手册界面"""
+    st.title("📖 09. 软件用户手册 (Software_Copyright_Manual.md)")
     st.markdown("---")
     
     st.info("""
-    **符合软著申请标准的《用户手册》**
+    **符合软件申请标准的《用户手册》**
     
     **输入**: 所有设计文档 + 软件信息
     **输出**: 完整的用户手册，预留截图位置
@@ -865,7 +865,7 @@ def show_software_copyright_manual():
     st.markdown("---")
     
     # 生成按钮
-    if st.button("🚀 生成软著用户手册", type="primary", use_container_width=True):
+    if st.button("🚀 生成软件用户手册", type="primary", use_container_width=True):
         with st.spinner("正在生成用户手册，请稍候..."):
             prompt = generate_manual_prompt(req_spec, ui_comp, tech, software_name, version)
             content, error = LLMClient.generate_text(prompt, temperature=0.5)
@@ -875,7 +875,7 @@ def show_software_copyright_manual():
                 return
             
             st.session_state.software_copyright_manual = content
-            st.success("✅ 软著用户手册生成完成！")
+            st.success("✅ 软件用户手册生成完成！")
     
     # 显示结果
     if st.session_state.software_copyright_manual:
@@ -884,7 +884,7 @@ def show_software_copyright_manual():
     # 使用指南
     with st.expander("📖 使用指南"):
         st.markdown("""
-        ### 软著申请流程
+        ### 软件申请流程
         
         1. **生成手册**: 使用本工具生成手册框架
         2. **运行程序**: 启动Trae开发好的软件
@@ -902,7 +902,7 @@ def show_software_copyright_manual():
         
         ### 文档结构说明
         
-        标准软著手册包含：
+        标准软件手册包含：
         1. **引言**: 编写目的、软件概述、术语定义
         2. **软件环境**: 硬件、软件、网络要求
         3. **功能说明**: 按模块详细说明
@@ -947,6 +947,6 @@ def show_software_copyright_manual():
         2. 下载为 .md 文件
         3. 运行实际程序截图
         4. 替换所有`[Insert Screenshot]`标记
-        5. 导出为PDF提交软著申请
+        5. 导出为PDF提交软件申请
         """)
 

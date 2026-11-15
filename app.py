@@ -41,7 +41,7 @@ def main():
             ("6️⃣ 界面规范", "ui_component"),
             ("7️⃣ 开发任务", "implementation_steps"),
             ("8️⃣ 测试规范", "qa_spec"),
-            ("9️⃣ 软著手册", "software_copyright_manual"),
+            ("9️⃣ 软件手册", "software_copyright_manual"),
             ("🔟 截图生成", "ui_screenshot_generator"),
         ]
         
@@ -113,7 +113,7 @@ def show_home():
     | **6️⃣ 界面规范** | 设计UI系统和组件 | UI_Component.md |
     | **7️⃣ 开发任务** | 生成开发步骤指令 | Implementation_Steps.md |
     | **8️⃣ 测试规范** | 制定测试策略 | QA_Spec.md |
-    | **9️⃣ 软著手册** | 生成软著申请文档 | Software_Copyright_Manual.md |
+    | **9️⃣ 软件手册** | 生成软件申请文档 | Software_Copyright_Manual.md |
     | **🔟 截图生成** | 生成界面截图素材 | PNG图片 |
     
     ### 🚀 快速开始
@@ -154,7 +154,7 @@ def show_home():
             st.rerun()
     
     with col3:
-        if st.button("📖 生成软著手册", use_container_width=True):
+        if st.button("📖 生成软件手册", use_container_width=True):
             st.session_state.current_page = "software_copyright_manual"
             st.rerun()
 

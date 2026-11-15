@@ -9,7 +9,7 @@ import re
 import json
 
 def extract_screenshot_markers(manual_content):
-    """从软著手册中提取截图标记"""
+    """从软件手册中提取截图标记"""
     if not manual_content:
         return []
     
@@ -171,7 +171,7 @@ def generate_screenshot_prompt_v2(suggestion, all_docs, custom_details=""):
     section = suggestion.get('section', '')
     
     # 基础提示词
-    base_prompt = f"""请生成一张专业的软件界面截图，用于软著申请文档。
+    base_prompt = f"""请生成一张专业的软件界面截图，用于软件申请文档。
 
 ## 界面信息
 
@@ -238,7 +238,7 @@ def generate_screenshot_prompt_v2(suggestion, all_docs, custom_details=""):
 
 请生成一张高质量的PNG格式界面截图，确保：
 1. 界面布局合理，符合{framework} + {ui_lib}的设计规范
-2. 数据真实可信，适合软著申请材料
+2. 数据真实可信，适合软件申请材料
 3. 视觉效果专业美观
 4. 所有文字清晰可读
 5. 高保真，接近真实软件截图效果
@@ -328,11 +328,11 @@ def generate_single_screenshot_v2(suggestion, all_docs, custom_prompt=None, rege
 
 def show_ui_screenshot_generator():
     """显示UI截图生成界面（重构版，支持提示词编辑）"""
-    st.title("🔟 软著UI截图生成")
+    st.title("🔟 软件UI截图生成")
     st.markdown("---")
     
     st.info("""
-    **智能分析文档，自动生成软著所需界面截图**
+    **智能分析文档，自动生成软件所需界面截图**
     
     **工作流程**:
     1. 读取 03/05/06/09 文档
@@ -801,7 +801,7 @@ def show_ui_screenshot_generator():
         
         if st.button("📥 导出所有截图清单", use_container_width=True):
             # 生成截图清单文档
-            manifest = "# 软著截图清单\n\n"
+            manifest = "# 软件截图清单\n\n"
             manifest += "| 序号 | 截图名称 | 所属章节 | 文件名 | 提示词类型 |\n"
             manifest += "|------|----------|----------|--------|------------|\n"
             
@@ -821,7 +821,7 @@ def show_ui_screenshot_generator():
         st.markdown("""
         ### 功能说明
         
-        本模块智能分析您的设计文档，自动推荐需要生成的软著截图：
+        本模块智能分析您的设计文档，自动推荐需要生成的软件截图：
         
         1. **文档分析**
            - 读取 03_Tech_Stack.md 获取前端技术栈
@@ -874,5 +874,5 @@ def show_ui_screenshot_generator():
         - 使用真实中文业务数据
         - 不出现"test""mock"等字样
         - 界面布局清晰专业
-        - 符合软著申请材料标准
+        - 符合软件申请材料标准
         """)
